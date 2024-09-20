@@ -6,6 +6,8 @@ Data logger designed to work with the [Kelly Controller KBS-X Line](https://kell
 
 After snooping the serial communication between the Kelly PC app and the controller, multiple data frames (telegrams?) were found that appear to comprise the information seen in the "data view" tab within the kelly PC and android apps.
 
+*Note that the Kelly App connects using 19200 baud, no stop bit, and non-parity settings.*
+
 The host app polls the controller with a 3 byte message. The first and third bytes are both the "Frame ID" and the middle (2nd) byte is 0x00. Three relevant frame types were identified (names are assumed):
 * __0x1b__ "Command Data" (16 bytes)
 * __0x33__ "Feedback Data" (16 bytes)
