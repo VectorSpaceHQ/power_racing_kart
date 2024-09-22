@@ -1,16 +1,20 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses import asdict
 
+def custom_init(cls):#https://stackoverflow.com/questions/71250418/call-the-generated-init-from-custom-constructor-in-dataclass-for-defaults
+    cls._dataclass_generated_init = cls.__init__
+    cls.__init__ = cls.__custom_init__
+    return cls
 
 @dataclass
 class KellyMessage:
-    command:int
-    length:int
+    message_id:int# = field(default=0)
+    length:int# = field(default=0)
 
-    def __init__(self, command, length):
-        self.command = command
+    def __init__(self, message_id, length):
+        self.message_id = message_id
         self.length = length
-        self.data = bytearray(3+length)
+        self.data = bytearray(length)
 
     def get_param(self, param):
         if param > self.length or param < 0:
@@ -20,17 +24,30 @@ class KellyMessage:
     def load_message(self,message):
         if len(message) != self.length+3:
             return False
-        if message[0] != self.command:
+        if message[0] != self.message_id:
             return False
         if message[1] != self.length:
             return False
         self.data = message[2:self.length+2]
-        checksum = 0
-        for b in message[0:self.length+2]:
-            checksum += b
-        if checksum % 256 != message[self.length+2]:
+        
+        if self.get_checksum() != message[self.length+2]:
             return False
         return self.update_fields()
+    
+    def get_message(self):
+        message = bytearray(self.length+3)
+        message[0] = self.message_id
+        message[1] = self.length
+        message[2:self.length+2] = self.data
+        message[self.length+2] = self.get_checksum()
+        return message
+    
+    def get_checksum(self):
+        checksum = self.message_id + self.length
+        for b in self.data:
+            checksum += b
+        return checksum % 256
+        
     
     def update_fields(self):
         return True
@@ -39,25 +56,25 @@ class KellyMessage:
         return asdict(self)
 
 
-
+@custom_init
 @dataclass
 class CommandMessage(KellyMessage):
-    break_ad:int
-    tps_ad:int
-    sp_ad:int
-    power_ad:int
-    vs_ad:int
-    bplus_ad:int
-    temp_ad:int
-    ia_ad:int
-    ib_ad:int
-    ic_ad:int
-    va_ad:int
-    vb_ad:int
-    vc_ad:int
-    htemp_ad:int
-    vplus_ad:int
-    ltemp_ad:int
+    break_ad:int = field(default=0)
+    tps_ad:int = field(default=0)
+    sp_ad:int = field(default=0)
+    power_ad:int = field(default=0)
+    vs_ad:int = field(default=0)
+    bplus_ad:int = field(default=0)
+    temp_ad:int = field(default=0)
+    ia_ad:int = field(default=0)
+    ib_ad:int = field(default=0)
+    ic_ad:int = field(default=0)
+    va_ad:int = field(default=0)
+    vb_ad:int = field(default=0)
+    vc_ad:int = field(default=0)
+    htemp_ad:int = field(default=0)
+    vplus_ad:int = field(default=0)
+    ltemp_ad:int = field(default=0)
 
     __BREAK_AD  = 0
     __TPS_AD    = 1
@@ -76,11 +93,13 @@ class CommandMessage(KellyMessage):
     __VPLUS_AD  = 14
     __LTEMP_AD  = 15
 
-    __COMMAND = 0x1b
+    __MESSAGE_ID = 0x1b
     __LENGTH = 16
 
-    def __init__(self):
-        super().__init__(self.__COMMAND, self.__LENGTH)
+    
+
+    def __custom_init__(self):
+        self._dataclass_generated_init(self.__MESSAGE_ID, self.__LENGTH)
 
     def update_fields(self):
         self.break_ad   = self.get_param(self.__BREAK_AD)
@@ -101,24 +120,25 @@ class CommandMessage(KellyMessage):
         self.ltemp_ad   = self.get_param(self.__LTEMP_AD)
         return True
 
+@custom_init
 @dataclass
 class FeedbackMessage(KellyMessage):
-    pwr_volt:int
-    bplus_volt:int
-    va_volt:int
-    vb_volt:int
-    vc_volt:int
-    pwm_duty:int
-    vplus_volt:int
-    high_temp:int
-    low_temp:int
-    motor_temp:int
-    brake_switch:int
-    rev_switch:int
-    foot_switch:int
-    sc_level:int
-    sb_level:int
-    sa_level:int
+    pwr_volt:int = field(default=0)
+    bplus_volt:int = field(default=0)
+    va_volt:int = field(default=0)
+    vb_volt:int = field(default=0)
+    vc_volt:int = field(default=0)
+    pwm_duty:int = field(default=0)
+    vplus_volt:int = field(default=0)
+    high_temp:int = field(default=0)
+    low_temp:int = field(default=0)
+    motor_temp:int = field(default=0)
+    brake_switch:int = field(default=0)
+    rev_switch:int = field(default=0)
+    foot_switch:int = field(default=0)
+    sc_level:int = field(default=0)
+    sb_level:int = field(default=0)
+    sa_level:int = field(default=0)
 
     __PWR_VOLT      = 0
     __BPLUS_VOLT    = 1
@@ -137,11 +157,11 @@ class FeedbackMessage(KellyMessage):
     __SB_LEVEL      = 14
     __SA_LEVEL      = 15
 
-    __COMMAND = 0x33
+    __MESSAGE_ID = 0x33
     __LENGTH = 16
 
-    def __init__(self):
-        super().__init__(self.__COMMAND, self.__LENGTH)
+    def __custom_init__(self):
+        self._dataclass_generated_init(self.__MESSAGE_ID, self.__LENGTH)
 
     def update_fields(self):
         self.pwr_volt       = self.get_param(self.__PWR_VOLT)
@@ -162,22 +182,23 @@ class FeedbackMessage(KellyMessage):
         self.sa_level       = self.get_param(self.__SA_LEVEL)
         return True
 
-    
+
+@custom_init
 @dataclass
 class EncoderMessage(KellyMessage):
-    thing_a:int
-    thing_b:int
-    thing_c:int
-    motor_speed:int
-    pcb_temp:int
-    forward_switch:int
-    two_speed:int
-    reserved_7:int
-    reserved_8:int
-    reserved_9:int
-    reserved_a:int
-    reserved_b:int
-    reserved_c:int
+    thing_a:int = field(default=0)
+    thing_b:int = field(default=0)
+    thing_c:int = field(default=0)
+    motor_speed:int = field(default=0)
+    pcb_temp:int = field(default=0)
+    forward_switch:int = field(default=0)
+    two_speed:int = field(default=0)
+    reserved_7:int = field(default=0)
+    reserved_8:int = field(default=0)
+    reserved_9:int = field(default=0)
+    reserved_a:int = field(default=0)
+    reserved_b:int = field(default=0)
+    reserved_c:int = field(default=0)
 
     __THING_A           = 0
     __THING_B           = 1
@@ -193,11 +214,11 @@ class EncoderMessage(KellyMessage):
     __RESERVED_B        = 11
     __RESERVED_C        = 12
 
-    __COMMAND = 0x34
+    __MESSAGE_ID = 0x34
     __LENGTH = 13
 
-    def __init__(self):
-        super().__init__(self.__COMMAND, self.__LENGTH)
+    def __custom_init__(self):
+        self._dataclass_generated_init(self.__MESSAGE_ID, self.__LENGTH)
 
     def update_fields(self):
         self.thing_a        = self.get_param(self.__THING_A)

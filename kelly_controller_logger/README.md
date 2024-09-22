@@ -2,6 +2,35 @@
 
 Data logger designed to work with the [Kelly Controller KBS-X Line](https://kellycontroller.com/shop/kbs/)
 
+# Logger App
+
+See `kelly_controller_logger.py : KellyControllerLogger`
+* Constructor takes a string indicating the serial port where the controller should be found
+    * Things like baud rate are hardcoded
+* The function `run(f, frequency_hz)` will loop indefinitely trying to log data
+    * The logging will happen to the provided file as if it were a CSV file
+        * be sure to open the file with option `newline=''`
+        * if the file pointer is at 0 then headers will be writen to the CSV file
+    * The logging will happen at the specified frequency
+    * Timeouts are fairly quick and there is no auto reconnect capability
+    * Errors will be printed to console as they happen
+
+## Usage Example
+
+```
+timestamp = datetime.datetime.now().strftime(f"%Y-%m-%dT%H-%M-%S")
+file_name = os.path.join(os.getcwd(),"LOG_"+timestamp+".csv")
+
+with open(file_name,'w',newline='') as f:
+    print("Logging to: %s"%file_name)
+    logger.run(f, frequency_hz=1) #DOES NOT RETURN
+```
+
+## Testing
+
+For local testing I use [com0com](https://code.google.com/archive/p/powersdr-iq/downloads) as a loopback serial port on windows.
+The notebook `test_logger.ipynb` demonstrates a loopback use case by simulating the controller with `fake_controller.py : FakeKellyController`
+
 # Data Format
 
 After snooping the serial communication between the Kelly PC app and the controller, multiple data frames (telegrams?) were found that appear to comprise the information seen in the "data view" tab within the kelly PC and android apps.
